@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Visualizador de Conversas - Octadesk</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f0f2f5;
+        height: 100vh;
+        display: flex;
+      }
+
+      .container {
+        display: flex;
+        width: 100%;
+        height: 100%;
+      }
+
+      /* Sidebar - Lista de Conversas */
+      .sidebar {
+        width: 350px;
+        background-color: #ffffff;
+        border-right: 1px solid #e0e0e0;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .search-container {
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #e0e0e0;
+      }
+
+      .search-input {
+        width: 100%;
+        padding: 10px 15px;
+        border: 1px solid #e0e0e0;
+        border-radius: 20px;
+        font-size: 14px;
+        outline: none;
+      }
+
+      .search-input:focus {
+        border-color: #25d366;
+      }
+
+      .conversations-list {
+        flex: 1;
+        overflow-y: auto;
+      }
+
+      .conversation-item {
+        padding: 15px;
+        border-bottom: 1px solid #f0f0f0;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+
+      .conversation-item:hover {
+        background-color: #f5f5f5;
+      }
+
+      .conversation-item.active {
+        background-color: #e3f2fd;
+        border-left: 4px solid #25d366;
+      }
+
+      .contact-name {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 5px;
+      }
+
+      .last-message {
+        font-size: 13px;
+        color: #666;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .conversation-date {
+        font-size: 11px;
+        color: #999;
+        margin-top: 3px;
+      }
+
+      /* Área Principal - Mensagens */
+      .main-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .chat-header {
+        padding: 15px 20px;
+        background-color: #f0f0f0;
+        border-bottom: 1px solid #e0e0e0;
+        display: none;
+      }
+
+      .contact-info {
+        display: flex;
+        align-items: center;
+      }
+
+      .contact-avatar {
+        width: 40px;
+        height: 40px;
+        background-color: #25d366;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        margin-right: 15px;
+      }
+
+      .contact-details h3 {
+        font-size: 16px;
+        color: #333;
+      }
+
+      .contact-details span {
+        font-size: 12px;
+        color: #666;
+      }
+
+      .messages-container {
+        flex: 1;
+        padding: 20px;
+        overflow-y: auto;
+        background-color: #e5ddd5;
+        background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%239C92AC' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E");
+      }
+
+      .message {
+        max-width: 70%;
+        margin-bottom: 10px;
+        padding: 8px 12px;
+        border-radius: 8px;
+        position: relative;
+        word-wrap: break-word;
+        animation: fadeIn 0.3s ease-in;
+      }
+
+      .message.received {
+        background-color: #ffffff;
+        align-self: flex-start;
+        border-top-left-radius: 0;
+      }
+
+      .message.sent {
+        background-color: #dcf8c6;
+        align-self: flex-end;
+        margin-left: auto;
+        border-top-right-radius: 0;
+      }
+
+      .message.internal {
+        background-color: #fff3cd;
+        align-self: center;
+        max-width: 90%;
+        text-align: center;
+        font-style: italic;
+      }
+
+      .message-content {
+        font-size: 14px;
+        line-height: 1.4;
+      }
+
+      .message-time {
+        font-size: 11px;
+        color: #999;
+        text-align: right;
+        margin-top: 3px;
+      }
+
+      .message-sender {
+        font-size: 12px;
+        font-weight: 600;
+        margin-bottom: 3px;
+        color: #555;
+      }
+
+      .no-conversation {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #666;
+        font-size: 18px;
+      }
+
+      .empty-state {
+        text-align: center;
+      }
+
+      .empty-state i {
+        font-size: 48px;
+        margin-bottom: 10px;
+        color: #ccc;
+      }
+
+      .loading-indicator {
+        text-align: center;
+        padding: 20px;
+        color: #666;
+        font-style: italic;
+      }
+
+      .no-messages {
+        text-align: center;
+        padding: 20px;
+        color: #999;
+        font-style: italic;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Sidebar com lista de conversas -->
+      <div class="sidebar">
+        <div class="search-container">
+          <input
+            type="text"
+            class="search-input"
+            placeholder="Pesquisar conversas..."
+            id="searchInput"
+          />
+        </div>
+        <div class="conversations-list" id="conversationsList">
+          <!-- As conversas serão carregadas aqui -->
+        </div>
+      </div>
+
+      <!-- Área principal de mensagens -->
+      <div class="main-content">
+        <div class="chat-header" id="chatHeader">
+          <div class="contact-info">
+            <div class="contact-avatar" id="contactAvatar">U</div>
+            <div class="contact-details">
+              <h3 id="contactName">Nome do Contato</h3>
+              <span id="contactStatus">Online</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="messages-container" id="messagesContainer">
+          <div class="no-conversation" id="noConversation">
+            <div class="empty-state">
+              <i>💬</i>
+              <p>Selecione uma conversa para visualizar as mensagens</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Variáveis globais
+      let processedConversations = [];
+      let currentConversation = null;
+
+      // Elementos DOM - garantimos que existem antes de usar
+      let chatHeader, contactName, contactAvatar, messagesContainer, noConversation;
+
+      // Função para inicializar elementos DOM
+      function initializeDOMElements() {
+        chatHeader = document.getElementById("chatHeader");
+        contactName = document.getElementById("contactName");
+        contactAvatar = document.getElementById("contactAvatar");
+        messagesContainer = document.getElementById("messagesContainer");
+        noConversation = document.getElementById("noConversation");
+        
+        // Verifica se todos os elementos existem
+        if (!chatHeader || !contactName || !contactAvatar || !messagesContainer || !noConversation) {
+          console.error("Elementos DOM não encontrados!");
+          return false;
+        }
+        
+        // Esconde o header inicialmente
+        chatHeader.style.display = "none";
+        return true;
+      }
+
+      // Função para processar os dados do JSON
+      function processConversationsData(data) {
+        const conversationsMap = new Map();
+
+        data.forEach((message) => {
+          const roomKey = message.roomKey?.$binary?.base64 || "default";
+
+          if (!conversationsMap.has(roomKey)) {
+            conversationsMap.set(roomKey, {
+              roomKey: roomKey,
+              messages: [],
+              participants: new Set(),
+              lastMessageTime: null,
+            });
+          }
+
+          const conversation = conversationsMap.get(roomKey);
+          conversation.messages.push(message);
+
+          // Adicionar participantes
+          if (message.user && message.user.name) {
+            conversation.participants.add(message.user.name);
+          }
+
+          // Atualizar última mensagem
+          const messageTime = new Date(message.time?.$date || message.time);
+          if (
+            !conversation.lastMessageTime ||
+            messageTime > conversation.lastMessageTime
+          ) {
+            conversation.lastMessageTime = messageTime;
+          }
+        });
+
+        // Ordenar mensagens por data
+        conversationsMap.forEach((conversation) => {
+          conversation.messages.sort((a, b) => {
+            const timeA = new Date(a.time?.$date || a.time);
+            const timeB = new Date(b.time?.$date || b.time);
+            return timeA - timeB;
+          });
+        });
+
+        return Array.from(conversationsMap.values()).sort(
+          (a, b) => b.lastMessageTime - a.lastMessageTime
+        );
+      }
+
+      // Função para renderizar lista de conversas
+      function renderConversationsList(conversations) {
+        const container = document.getElementById("conversationsList");
+        if (!container) {
+          console.error("Container de conversas não encontrado!");
+          return;
+        }
+        
+        container.innerHTML = "";
+
+        conversations.forEach((conversation) => {
+          const lastMessage =
+            conversation.messages[conversation.messages.length - 1];
+          const participants = Array.from(conversation.participants).join(", ");
+          const lastMessageText = lastMessage.comment || "(Sem texto)";
+          const lastMessageTime = formatDate(conversation.lastMessageTime);
+
+          const conversationElement = document.createElement("div");
+          conversationElement.className = "conversation-item";
+          conversationElement.dataset.roomKey = conversation.roomKey;
+
+          conversationElement.onclick = () => {
+            loadConversation(conversation);
+          };
+
+          conversationElement.innerHTML = `
+                <div class="contact-name">${participants}</div>
+                <div class="last-message">${lastMessageText}</div>
+                <div class="conversation-date">${lastMessageTime}</div>
+            `;
+
+          container.appendChild(conversationElement);
+        });
+      }
+
+      // Função para carregar uma conversa específica
+      function loadConversation(conversation) {
+        console.log('Carregando conversa:', conversation.roomKey);
+        
+        // Verifica se os elementos DOM estão inicializados
+        if (!chatHeader || !contactName || !contactAvatar || !messagesContainer || !noConversation) {
+          console.error("Elementos DOM não inicializados!");
+          return;
+        }
+
+        // Remove seleção anterior
+        document.querySelectorAll(".conversation-item").forEach((item) => {
+          item.classList.remove("active");
+        });
+
+        // Adiciona seleção atual
+        const selectedItem = document.querySelector(
+          `[data-room-key="${conversation.roomKey}"]`
+        );
+        if (selectedItem) selectedItem.classList.add("active");
+
+        // Atualiza a conversa atual
+        currentConversation = conversation;
+
+        // Mostra o header e esconde estado inicial
+        chatHeader.style.display = "block";
+        noConversation.style.display = "none";
+
+        // Atualiza informações do contato
+        const participants = Array.from(conversation.participants);
+        contactName.textContent = participants.join(", ");
+        contactAvatar.textContent = 
+          participants[0] ? participants[0].charAt(0).toUpperCase() : "U";
+
+        // Limpa e renderiza as novas mensagens
+        renderMessages(conversation.messages);
+      }
+
+      // Função para renderizar mensagens
+      function renderMessages(messages) {
+        if (!messagesContainer) {
+          console.error("Container de mensagens não encontrado!");
+          return;
+        }
+        
+        // Limpa completamente antes de renderizar
+        messagesContainer.innerHTML = "";
+
+        // Se não há mensagens, mostra uma mensagem
+        if (!messages || messages.length === 0) {
+          messagesContainer.innerHTML = '<div class="no-messages">Nenhuma mensagem nesta conversa</div>';
+          return;
+        }
+
+        messages.forEach((message) => {
+          const messageElement = document.createElement("div");
+          const messageTime = new Date(message.time?.$date || message.time);
+          const formattedTime = formatFullDateTime(messageTime);
+
+          let messageClass = "message";
+          let senderInfo = "";
+
+          if (message.origin === "BOT") {
+            messageClass += " received";
+            senderInfo = `<div class="message-sender">🤖 ${
+              message.user?.name || "Bot"
+            }</div>`;
+          } else if (message.origin === "USER" && message.user?.type === 1) {
+            messageClass += " sent";
+            senderInfo = `<div class="message-sender">👤 ${
+              message.user?.name || "Usuário"
+            }</div>`;
+          } else if (message.type === "internal") {
+            messageClass += " internal";
+            senderInfo = `<div class="message-sender">🔒 ${
+              message.user?.name || "Sistema"
+            }</div>`;
+          } else {
+            messageClass += " received";
+            senderInfo = `<div class="message-sender">👥 ${
+              message.user?.name || "Contato"
+            }</div>`;
+          }
+
+          const messageContent =
+            message.comment ||
+            (message.customFields?.template?.name
+              ? `[Template: ${message.customFields.template.name}]`
+              : "(Mensagem sem conteúdo)");
+
+          messageElement.className = messageClass;
+          messageElement.innerHTML = `
+                ${senderInfo}
+                <div class="message-content">${messageContent}</div>
+                <div class="message-time">${formattedTime}</div>
+            `;
+
+          messagesContainer.appendChild(messageElement);
+        });
+
+        // Rolagem automática para a última mensagem
+        setTimeout(() => {
+          if (messagesContainer) {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+          }
+        }, 100);
+      }
+
+      // Funções auxiliares de formatação
+      function formatDate(date) {
+        return date.toLocaleDateString("pt-BR", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        });
+      }
+
+      function formatFullDateTime(date) {
+        return date.toLocaleString("pt-BR", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      }
+
+      // Função de pesquisa
+      function setupSearch() {
+        const searchInput = document.getElementById("searchInput");
+        if (!searchInput) {
+          console.error("Campo de pesquisa não encontrado!");
+          return;
+        }
+        
+        searchInput.addEventListener("input", (e) => {
+          const searchTerm = e.target.value.toLowerCase();
+          const filteredConversations = processedConversations.filter(
+            (conversation) => {
+              const participants = Array.from(conversation.participants)
+                .join(" ")
+                .toLowerCase();
+              const lastMessage =
+                conversation.messages[conversation.messages.length - 1]
+                  .comment || "";
+              return (
+                participants.includes(searchTerm) ||
+                lastMessage.toLowerCase().includes(searchTerm)
+              );
+            }
+          );
+          renderConversationsList(filteredConversations);
+        });
+      }
+
+      // Inicialização
+      function init() {
+        console.log("Inicializando aplicação...");
+        
+        // Inicializa elementos DOM primeiro
+        if (!initializeDOMElements()) {
+          console.error("Falha ao inicializar elementos DOM");
+          return;
+        }
+        
+        // Carregar e processar os dados
+        fetch("backup_mensagem.json")
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error("Erro ao carregar arquivo");
+            }
+            return response.json();
+          })
+          .then((data) => {
+            console.log("Dados carregados:", data.length, "mensagens");
+            processedConversations = processConversationsData(data);
+            console.log("Conversas processadas:", processedConversations.length);
+            renderConversationsList(processedConversations);
+            setupSearch();
+          })
+          .catch((error) => {
+            console.error("Erro ao carregar dados:", error);
+            const container = document.getElementById("conversationsList");
+            if (container) {
+              container.innerHTML = 
+                '<div style="padding: 20px; text-align: center; color: #666;">Erro ao carregar conversas. Verifique o console.</div>';
+            }
+          });
+      }
+
+      // Inicia a aplicação quando a página carrega
+      document.addEventListener('DOMContentLoaded', init);
+    </script>
+  </body>
+</html>
